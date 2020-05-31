@@ -17,12 +17,10 @@ Including another URLconf
 from django.conf.urls import url,include
 from django.contrib import admin
 from index import index,main,login,logout,noperm
-from index import submenu,codeing,getmenu
+from index import submenu,codeing,getmenu,home
 # from CMDB.views.db.oracle_api import OracleClusterViewset
 
-
-
-
+from index import developing
 from django.contrib.auth.models import User
 from rest_framework import routers, serializers, viewsets
 from rest_framework.urlpatterns import format_suffix_patterns
@@ -51,16 +49,17 @@ router = routers.DefaultRouter()
 
 urlpatterns = [
     url(r'^apitest/', include(router.urls)),
-    url(r'^api/', include('api.urls')),
+
     url(r'^admin/', admin.site.urls),
     url(r'^login',login,name='login'),
+    url(r'^home/$', home,name='home'),
     url(r'^logout', logout, name='logout'),
     url(r'^noperm', noperm, name='noperm'),
     url(r'^$',index,name='index' ), #代码首页会获取到顶级菜单
     url(r'^getmenu$', getmenu, name='getmenu'),
 
     # url(r'^getmenu/(?P<id>[0-9]+)/$',submenu,name='submenu'),  #点击子菜单后动态获取
-
+    url(r'^developing', developing, name='developing'),
     url(r'^codinghard',codeing,name='codinghard'),#正在努力开发代码中
 
     url(r'^console.html',main,name='page-main'),
@@ -72,5 +71,7 @@ urlpatterns = [
     url(r'^wiki/',include('wiki.urls')),
     url(r'^opscontrol/', include('OpsControl.urls')),
     url(r'^codeops/', include('CodeOps.urls')),
+
+    url(r'^mysqlops/', include('MysqlOps.urls')),
 ]
 # urlpatterns = format_suffix_patterns(urlpatterns)

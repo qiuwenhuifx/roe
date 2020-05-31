@@ -4,7 +4,7 @@ import uuid,os,json
 from django.http import HttpResponseRedirect,JsonResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from CMDB.models import Server_Assets, Network_Assets
+
 from utils.data.DsRedisOps import DsRedis
 
 from django.contrib.auth.models import User,Group
@@ -16,68 +16,69 @@ from OpsControl.models import (Ansible_Playbook,Ansible_Playbook_Number,
 
 from CodeOps.models import Project_Assets,Service_Assets
 
-from CMDB.models import Assets
+
 from utils.data.DsMySQL import AnsibleRecord
 from django.contrib.auth.decorators import permission_required
 from utils.logger import logger
 from utils.ansible_api_v2 import ANSRunner
-from dao.assets import AssetsSource
 
-@login_required()
-@permission_required('OpsManage.can_read_ansible_model',login_url='/noperm/')
-def apps_model(request):
-    if request.method == "GET":
-        projectList = Project_Assets.objects.all()
-        serverList = AssetsSource().serverList()
-        groupList = Group.objects.all()
-        serviceList = Service_Assets.objects.all()
-        inventoryList = Ansible_Inventory.objects.all()
-        return render(request,'opscontrol/apps/apps_model.html',{"user":request.user,"ans_uuid":uuid.uuid4(),
-                                                            "serverList":serverList,"groupList":groupList,
-                                                            "serviceList":serviceList,"projectList":projectList,
-                                                            "inventoryList":inventoryList})
-    elif  request.method == "POST" and request.user.has_perm('OpsManage.can_exec_ansible_model'):
-        resource = []
-        sList = []
-        if request.POST.get('server_model') in ['service','group','custom','inventory']:
-            if request.POST.get('server_model') == 'custom':
-                serverList = request.POST.getlist('ansible_server')
-                sList,resource = AssetsSource().custom(serverList)
-            elif request.POST.get('server_model') == 'group':
-                sList,resource = AssetsSource().group(group=request.POST.get('ansible_group'))
-            elif request.POST.get('server_model') == 'service':
-                sList,resource = AssetsSource().service(business=request.POST.get('ansible_service')) 
-            elif request.POST.get('server_model') == 'inventory': 
-                sList,resource,groups = AssetsSource().inventory(inventory=request.POST.get('ansible_inventory'))
-            if len(request.POST.get('custom_model')) > 0:model_name = request.POST.get('custom_model')
-            else:model_name = request.POST.get('ansible_model',None)
-            if len(sList) > 0:
-                redisKey = request.POST.get('ans_uuid')
-                logId = AnsibleRecord.Model.insert(user=str(request.user),ans_model=model_name,ans_server=','.join(sList),ans_args=request.POST.get('ansible_args',None))
-                DsRedis.OpsAnsibleModel.delete(redisKey)
-                DsRedis.OpsAnsibleModel.lpush(redisKey, "[Start] Ansible Model: {model}  ARGS:{args}".format(model=model_name,args=request.POST.get('ansible_args',"None")))
-                if request.POST.get('ansible_debug') == 'on':ANS = ANSRunner(resource,redisKey,logId,verbosity=4)
-                else:ANS = ANSRunner(resource,redisKey,logId)
-                if request.POST.get('server_model') == 'inventory':sList = groups[:-1]
-                ANS.run_model(host_list=sList,module_name=model_name,module_args=request.POST.get('ansible_args',""))
-                DsRedis.OpsAnsibleModel.lpush(redisKey, "[Done] Ansible Done.")
-                return JsonResponse({'msg':"操作成功","code":200,'data':[]})
-            else:
-                return JsonResponse({'msg':"操作失败，未选择主机或者该分组没有成员","code":500,'data':[]})
-        else:
-            return JsonResponse({'msg':"操作失败，不支持的操作类型","code":500,'data':[]})
+
+# @login_required()
+# def apps_model(request):
+#     if request.method == "GET":
+#         projectList = Project_Assets.objects.all()
+#         serverList = AssetsSource().serverList()
+#         groupList = Group.objects.all()
+#         serviceList = Service_Assets.objects.all()
+#         inventoryList = Ansible_Inventory.objects.all()
+#         return render(request,'opscontrol/apps/apps_model.html',{"user":request.user,"ans_uuid":uuid.uuid4(),
+#                                                             "serverList":serverList,"groupList":groupList,
+#                                                             "serviceList":serviceList,"projectList":projectList,
+#                                                             "inventoryList":inventoryList})
+#     elif  request.method == "POST" and request.user.has_perm('OpsManage.can_exec_ansible_model'):
+#         resource = []
+#         sList = []
+#         if request.POST.get('server_model') in ['service','group','custom','inventory']:
+#             if request.POST.get('server_model') == 'custom':
+#                 serverList = request.POST.getlist('ansible_server')
+#                 sList,resource = AssetsSource().custom(serverList)
+#             elif request.POST.get('server_model') == 'group':
+#                 sList,resource = AssetsSource().group(group=request.POST.get('ansible_group'))
+#             elif request.POST.get('server_model') == 'service':
+#                 sList,resource = AssetsSource().service(business=request.POST.get('ansible_service'))
+#             elif request.POST.get('server_model') == 'inventory':
+#                 sList,resource,groups = AssetsSource().inventory(inventory=request.POST.get('ansible_inventory'))
+#             if len(request.POST.get('custom_model')) > 0:model_name = request.POST.get('custom_model')
+#             else:model_name = request.POST.get('ansible_model',None)
+#             if len(sList) > 0:
+#                 redisKey = request.POST.get('ans_uuid')
+#                 logId = AnsibleRecord.Model.insert(user=str(request.user),ans_model=model_name,ans_server=','.join(sList),ans_args=request.POST.get('ansible_args',None))
+#                 DsRedis.OpsAnsibleModel.delete(redisKey)
+#                 DsRedis.OpsAnsibleModel.lpush(redisKey, "[Start] Ansible Model: {model}  ARGS:{args}".format(model=model_name,args=request.POST.get('ansible_args',"None")))
+#                 if request.POST.get('ansible_debug') == 'on':ANS = ANSRunner(resource,redisKey,logId,verbosity=4)
+#                 else:ANS = ANSRunner(resource,redisKey,logId)
+#                 if request.POST.get('server_model') == 'inventory':sList = groups[:-1]
+#                 ANS.run_model(host_list=sList,module_name=model_name,module_args=request.POST.get('ansible_args',""))
+#                 DsRedis.OpsAnsibleModel.lpush(redisKey, "[Done] Ansible Done.")
+#                 return JsonResponse({'msg':"操作成功","code":200,'data':[]})
+#             else:
+#                 return JsonResponse({'msg':"操作失败，未选择主机或者该分组没有成员","code":500,'data':[]})
+#         else:
+#             return JsonResponse({'msg':"操作失败，不支持的操作类型","code":500,'data':[]})
     
 @login_required()
 def ansible_run(request):
     if request.method == "POST":
         redisKey = request.POST.get('ans_uuid')          
         msg = DsRedis.OpsAnsibleModel.rpop(redisKey)
-        if msg:return JsonResponse({'msg':msg,"code":200,'data':[]}) 
-        else:return JsonResponse({'msg':None,"code":200,'data':[]})
+        if msg:
+            return JsonResponse({'msg':msg,"code":200,'data':[]})
+
+        else:
+            return JsonResponse({'msg':None,"code":200,'data':[]})
         
         
 @login_required()
-@permission_required('OpsManage.can_add_ansible_playbook',login_url='/noperm/')
 def apps_upload(request):
     if request.method == "GET":
         serverList = AssetsSource().serverList()
@@ -136,7 +137,6 @@ def apps_upload(request):
         return HttpResponseRedirect('/apps/playbook/upload/') 
     
 @login_required()
-@permission_required('OpsManage.can_add_ansible_playbook',login_url='/noperm/')
 def apps_online(request):
     if request.method == "GET":
         serverList = AssetsSource().serverList()
@@ -201,7 +201,6 @@ def apps_online(request):
         return JsonResponse({'msg':None,"code":200,'data':[]})      
     
 @login_required()
-@permission_required('OpsManage.can_read_ansible_playbook',login_url='/noperm/')
 def apps_list(request):
     if request.method == "GET":
         #获取已登录用户的user id跟group id
@@ -220,7 +219,6 @@ def apps_list(request):
         return render(request,'opscontrol/apps/apps_list.html',{"user":request.user,"playbookList":playbookList,})
 
 @login_required()
-@permission_required('OpsManage.can_add_ansible_playbook',login_url='/noperm/')
 def apps_playbook_file(request,pid):
     try:
         playbook = Ansible_Playbook.objects.get(id=pid)
@@ -237,7 +235,6 @@ def apps_playbook_file(request,pid):
         else:return JsonResponse({'msg':"剧本不存在，可能已经被删除.","code":500,'data':[]})
              
 @login_required()
-@permission_required('OpsManage.can_read_ansible_playbook',login_url='/noperm/')
 def apps_playbook_run(request,pid):
     try:
         playbook = Ansible_Playbook.objects.get(id=pid)
@@ -310,7 +307,6 @@ def apps_playbook_run(request,pid):
             return JsonResponse({'msg':"剧本执行失败，{user}正在执行该剧本".format(user=DsRedis.OpsAnsiblePlayBookLock.get(playbook.playbook_uuid+'-locked')),"code":500,'data':[]}) 
         
 @login_required()
-@permission_required('OpsManage.can_change_ansible_playbook',login_url='/noperm/')
 def apps_playbook_modf(request,pid):
     try:
         playbook = Ansible_Playbook.objects.get(id=pid)
@@ -408,7 +404,6 @@ def apps_playbook_modf(request,pid):
 
 
 @login_required()
-@permission_required('OpsManage.can_change_ansible_playbook',login_url='/noperm/')
 def apps_playbook_online_modf(request,pid):
     try:
         playbook = Ansible_Playbook.objects.get(id=pid)
@@ -508,7 +503,6 @@ def ansible_log_view(request,model,id):
     
     
 @login_required()
-@permission_required('OpsManage.can_add_ansible_script',login_url='/noperm/')
 def apps_script_online(request):
     if request.method == "GET":
         serverList = AssetsSource().serverList()
@@ -522,7 +516,8 @@ def apps_script_online(request):
         resource = []
         sList = []
         def saveScript(content,filePath):
-            if os.path.isdir(os.path.dirname(filePath)) is not True:os.makedirs(os.path.dirname(filePath))#判断文件存放的目录是否存在，不存在就创建
+            if os.path.isdir(os.path.dirname(filePath)) is not True:
+                os.makedirs(os.path.dirname(filePath))#判断文件存放的目录是否存在，不存在就创建
             with open(filePath, 'w') as f:
                 f.write(content) 
             return filePath

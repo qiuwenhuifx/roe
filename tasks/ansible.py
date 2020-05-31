@@ -2,11 +2,11 @@
 # _#_ coding:utf-8 _*_ 
 import os,json
 from celery import task
-from OpsManage.models import (Ansible_Script,Ansible_Playbook,Server_Assets,
+from OpsControl.models import (Ansible_Script,Ansible_Playbook,
                               Ansible_Playbook_Number)
-from OpsManage.data.DsMySQL import AnsibleRecord
-from OpsManage.utils.ansible_api_v2 import ANSRunner
-from dao.assets import AssetsSource
+from utils.data.DsMySQL import AnsibleRecord
+from utils.ansible_api_v2 import ANSRunner
+
 
 
     

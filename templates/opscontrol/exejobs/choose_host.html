@@ -1,0 +1,261 @@
+{% extends 'base_children.html' %}
+{% block self_head %}
+
+ <link  rel="stylesheet" href="/static/larryms/thirdlib/formSelects-v4.css" >
+{% endblock %}
+{% block content %}
+<div class="layui-fluid form-demo-box">
+
+<div class="layui-tab layui-tab-brief" lay-filter="docDemoTabBrief">
+  <ul class="layui-tab-title">
+    <li class="layui-this">根据业务树选择主机</li>
+    <li>自定义分组选择</li>
+    <li>通盘选择</li>
+
+  </ul>
+  <div class="layui-tab-content" style="height: 100px;">
+    <div class="layui-tab-item layui-show">
+                   <form class="layui-form layui-form-pane" id="ansiblescriptRun" lay-filter="layui-form" action="{% url 'ansible_transfile' %}">
+                                      {% csrf_token %}
+                                     <div class="layui-form-item">
+                                        <label class="layui-form-label">产品线</label>
+                                        <div class="layui-input-block">
+                                            <select name="prod_line" xm-select='prod_line'  xm-select-radio>
+                                                    <option value="">联动查询</option>
+                                            </select>
+{#                                             <input type="text" id="yewuxian" class="layu=3i-input" readonly="readonly">#}
+                                        </div>
+                                    </div>
+                                    <div class="layui-form-item">
+                                        <label class="layui-form-label">文件源机器</label>
+                                        <div class="layui-input-block">
+                                            <select name='hosts' id="select_host" xm-select='select_host'  xm-select-max="3">
+                                                    <option value="">选择一个服务器</option>
+                                            </select>
+
+                                        </div>
+                                    </div>
+
+                               <button type="button" class="layui-btn layui-btn-green" lay-submit="" lay-filter='runjob' id="run_ansible_model">确定</button>
+
+                   </form>
+
+    </div>
+    <div class="layui-tab-item">还没开发</div>
+    <div class="layui-tab-item">还没开发</div>
+
+  </div>
+</div>
+
+
+
+
+</div>
+
+
+
+
+{% endblock %}
+{% block self_foot %}
+
+    <script type="text/javascript">
+        layui.config({
+            version: "2.0.8",
+            base: '/static/larryms/',
+            layertype:2
+        }).extend({
+            larry: 'js/base'
+        }).use(['larry', 'layer', 'jquery', 'larryms', 'form','formSelects'], function () {
+            var $ = layui.$,
+                larry = layui.larry,
+                form = layui.form,
+                layer = layui.layer,
+                formSelects = layui.formSelects,
+
+                larryms = layui.larryms;
+
+            {#var curIfr = parent.layer.getFrameIndex(window.name);#}
+
+
+
+
+
+            form.on('submit(runjob)', function (data) {
+                console.log(data.field)
+
+
+
+// 	    /* 轮训获取结果结束  */
+                $.ajax({
+                    dataType: "text",
+                    url: '{% url 'ansible_exe_script' %}', //请求地址
+                    type: "POST",  //提交类似
+                      {#contentType: "application/json",#}
+                    data: {
+                        "script_content":contents ,
+                    "ans_uuid":data.field.ans_uuid ,
+            "csrfmiddlewaretoken": data.field.csrfmiddlewaretoken,
+"hosts":data.field.hosts ,
+"script_args": data.field.script_args,
+"script_name": data.field.script_name
+                    },  //提交参数
+                    success: function (res) {
+                        btnObj.removeAttr('disabled');
+                        if (res["code"] == "500") {
+                            clearInterval(interval);
+                            btnObj.removeAttr('disabled');
+                            larryms.msg(res["msg"]);
+                        }
+
+                    },
+                    error: function (response) {
+                        btnObj.removeAttr('disabled');
+                        larryms.msg("运行失败" );
+                        clearInterval(interval);
+                    }
+                });
+
+
+            });
+
+
+            formSelects.config('prod_line', {
+    type: 'get',                //ÇëÇó·½Ê½: post, get, put, delete...
+    header: {},                 //×Ô¶¨ÒåÇëÇóÍ·
+    data: {},                   //×Ô¶¨Òå³ýËÑË÷ÄÚÈÝÍâµÄÆäËûÊý¾Ý
+    searchUrl: '{% url 'get_json_tree' %}',
+    searchName: 'keyword',      //×Ô¶¨ÒåËÑË÷ÄÚÈÝµÄkeyÖµ
+    searchVal: '',              //×Ô¶¨ÒåËÑË÷ÄÚÈÝ, ËÑËØÒ»´ÎºóÊ§Ð§, ÓÅÏÈ¼¶¸ßÓÚËÑË÷¿òÖÐµÄÖµ
+    keyName: 'name',            //×Ô¶¨Òå·µ»ØÊý¾ÝÖÐnameµÄkey, Ä¬ÈÏ name
+    keyVal: 'value',            //×Ô¶¨Òå·µ»ØÊý¾ÝÖÐvalueµÄkey, Ä¬ÈÏ value
+    keySel: 'selected',         //×Ô¶¨Òå·µ»ØÊý¾ÝÖÐselectedµÄkey, Ä¬ÈÏ selected
+    keyDis: 'disabled',         //×Ô¶¨Òå·µ»ØÊý¾ÝÖÐdisabledµÄkey, Ä¬ÈÏ disabled
+    keyChildren: 'children',    //Áª¶¯¶àÑ¡×Ô¶¨Òåchildren
+    delay: 500,                 //ËÑË÷ÑÓ³ÙÊ±¼ä, Ä¬ÈÏÍ£Ö¹ÊäÈë500msºó¿ªÊ¼ËÑË÷
+    direction: 'auto',          //¶àÑ¡ÏÂÀ­·½Ïò, auto|up|down
+    response: {
+        statusCode: 0,          //³É¹¦×´Ì¬Âë
+        statusName: 'code',     //code key
+        msgName: 'msg',         //msg key
+        dataName: 'data'        //data key
+    },
+    success: function(id, url, searchVal, result){      //Ê¹ÓÃÔ¶³Ì·½Ê½µÄsuccess»Øµ÷
+        console.log(id);        //×é¼þID xm-select
+        console.log(url);       //URL
+        console.log(searchVal); //ËÑË÷µÄvalue
+        console.log(result);    //·µ»ØµÄ½á¹û
+    },
+    error: function(id, url, searchVal, err){           //Ê¹ÓÃÔ¶³Ì·½Ê½µÄerror»Øµ÷
+        //
+        console.log(err);   //err¶ÔÏó
+    },
+    beforeSuccess: function(id, url, searchVal, result){
+
+        result.data=JSON.parse(result.data)
+        return result;  //±ØÐëreturnÒ»¸ö½á¹û, Õâ¸ö½á¹ûÒª·ûºÏ¶ÔÓ¦µÄÊý¾Ý½á¹¹
+    },
+    beforeSearch: function(id, url, searchVal){         //ËÑË÷Ç°µ÷ÓÃ´Ë·½·¨, return true½«´¥·¢ËÑË÷, ·ñÔò²»´¥·¢
+        if(!searchVal){//Èç¹ûËÑË÷ÄÚÈÝÎª¿Õ,¾Í²»´¥·¢ËÑË÷
+            return false;
+        }
+        return true;
+    },
+    clearInput: false,          //µ±ÓÐËÑË÷ÄÚÈÝÊ±,  µã»÷Ñ¡ÏîÊÇ·ñÇå¿ÕËÑË÷ÄÚÈÝ, Ä¬ÈÏ²»Çå¿Õ
+   }, true);
+            formSelects.data('prod_line','server',{
+                url: '{% url 'get_json_tree' %}',
+
+                 linkage: true,
+                linkageWidth:130,
+                 keyChildren: 'children',
+                keyName: 'name',
+                keyVal: 'value',
+                 success: function(result){
+						        console.log(result);
+						    },
+                 error: function(err){           //Ê¹ÓÃÔ¶³Ì·½Ê½µÄerror»Øµ÷
+						        //Í¬ÉÏ
+						        console.log(err);   //err¶ÔÏó
+						    },
+
+
+            });
+
+          formSelects.on('prod_line', function(id, vals, val, isAdd, isDisabled){
+              var hostids='';
+              for(var i in vals)
+              {
+                  var  hostname=vals[i].name.split('/').pop();
+                  var hostid=vals[i].value.split('/').pop();
+                  if (hostname ==='host')
+                  {
+	   $('#select_host option:selected').empty();
+
+		   if ( hostid > 0){
+
+  formSelects.config('select_host', {
+    type: 'get',                //ÇëÇó·½Ê½: post, get, put, delete...
+    header: {},                 //×Ô¶¨ÒåÇëÇóÍ·
+    data: {},                   //×Ô¶¨Òå³ýËÑË÷ÄÚÈÝÍâµÄÆäËûÊý¾Ý
+    searchUrl: '',           //ËÑË÷µØÖ·, Ä¬ÈÏÊ¹ÓÃxm-select-searchµÄÖµ, ´Ë²ÎÊýÓÅÏÈ¼¶¸ß
+    searchName: 'keyword',      //×Ô¶¨ÒåËÑË÷ÄÚÈÝµÄkeyÖµ
+    searchVal: '',              //×Ô¶¨ÒåËÑË÷ÄÚÈÝ, ËÑËØÒ»´ÎºóÊ§Ð§, ÓÅÏÈ¼¶¸ßÓÚËÑË÷¿òÖÐµÄÖµ
+    keyName: 'name',            //×Ô¶¨Òå·µ»ØÊý¾ÝÖÐnameµÄkey, Ä¬ÈÏ name
+    keyVal: 'value',            //×Ô¶¨Òå·µ»ØÊý¾ÝÖÐvalueµÄkey, Ä¬ÈÏ value
+    keySel: 'selected',         //×Ô¶¨Òå·µ»ØÊý¾ÝÖÐselectedµÄkey, Ä¬ÈÏ selected
+    keyDis: 'disabled',         //×Ô¶¨Òå·µ»ØÊý¾ÝÖÐdisabledµÄkey, Ä¬ÈÏ disabled
+
+    delay: 500,                 //ËÑË÷ÑÓ³ÙÊ±¼ä, Ä¬ÈÏÍ£Ö¹ÊäÈë500msºó¿ªÊ¼ËÑË÷
+    direction: 'auto',          //¶àÑ¡ÏÂÀ­·½Ïò, auto|up|down
+    response: {
+        statusCode: 0,          //³É¹¦×´Ì¬Âë
+        statusName: 'code',     //code key
+        msgName: 'msg',         //msg key
+        dataName: 'data'        //data key
+    },
+    success: function(id, url, searchVal, result){      //Ê¹ÓÃÔ¶³Ì·½Ê½µÄsuccess»Øµ÷
+        console.log(id);        //×é¼þID xm-select
+        console.log(url);       //URL
+        console.log(searchVal); //ËÑË÷µÄvalue
+        console.log(result);    //·µ»ØµÄ½á¹û
+    },
+    error: function(id, url, searchVal, err){           //Ê¹ÓÃÔ¶³Ì·½Ê½µÄerror»Øµ÷
+        //
+        console.log(err);   //err¶ÔÏó
+    },
+    beforeSuccess: function(id, url, searchVal, result){
+
+        result.data=JSON.parse(result.data)
+        return result;  //±ØÐëreturnÒ»¸ö½á¹û, Õâ¸ö½á¹ûÒª·ûºÏ¶ÔÓ¦µÄÊý¾Ý½á¹¹
+    },
+    beforeSearch: function(id, url, searchVal){         //ËÑË÷Ç°µ÷ÓÃ´Ë·½·¨, return true½«´¥·¢ËÑË÷, ·ñÔò²»´¥·¢
+        if(!searchVal){//Èç¹ûËÑË÷ÄÚÈÝÎª¿Õ,¾Í²»´¥·¢ËÑË÷
+            return false;
+        }
+        return true;
+    },
+    clearInput: false,          //µ±ÓÐËÑË÷ÄÚÈÝÊ±, µã»÷Ñ¡ÏîÊÇ·ñÇå¿ÕËÑË÷ÄÚÈÝ, Ä¬ÈÏ²»Çå¿Õ
+}, true);
+				formSelects.data('select_host', 'server', {
+    url: '/cmdb/get_json_tree_host/'+ hostid ,
+
+});
+		   };
+
+                  }
+                  else{
+                      larryms.alert('最后的节点要是host，才能选出主机奥');
+                      formSelects.value('prod_line',[vals[i].value],false) ;//删掉这个值
+                  }
+                  console.log(hostname);
+                  console.log(hostid)
+
+              };
+        }, true);
+
+
+        });
+
+
+    </script>
+{%endblock %}

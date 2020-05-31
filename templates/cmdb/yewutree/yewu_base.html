@@ -1,71 +1,294 @@
+{% extends 'base_children.html' %}
 {% load mptt_tags %}
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>layui</title>
-  <meta name="renderer" content="webkit">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <link rel="stylesheet" href="/static/layui/layui/css/layui.css" media="all">
+{% block self_head %}
+    <link rel="stylesheet" href="/static/jquery/jstree/themes/default/style.min.css"/>
+{% endblock %}
 
-    <link rel="stylesheet" href="/static/jquery/jquery-treeview/jquery.treeview.css" />
-    <script src="/static/jquery/jquery.1.9.1.min.js"></script>
 
-	<script src="/static/jquery/jquery-treeview/jquery.treeview.js" type="text/javascript"></script>
-</head>
-<body>
-            
-<fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
-  <legend>业务拓扑</legend>
-</fieldset>
+{% block content %}
+    {% if info %}
+        <span style="color:red">{{ info }}</span>
+    {% endif %}
 
- <div class="layui-row layui-col-space15">
-    <div class="layui-col-md2">
-      <div style="display: inline-block; width: 100%; height: auto; padding: 10px; border: 5px solid #ddd; overflow: auto;" >
+    {##}
+    {#    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">#}
+    {#        <legend>业务拓扑</legend>#}
+    {#    </fieldset>#}
 
-          <ul id="tree" class="filetree  treeview-famfamfam">
-              {% recursetree yewu %}
-            <li>
-               <a href="http://www.baidu.com"  target="listChannel">{{ node.name }}</a>
-                    {% if not node.is_leaf_node %}
-                       <ul class="children">
-                        {{ children }}
+
+    <div class="layui-fluid">
+        <div class="layui-row  layui-col-space15 larryms-count-demo">
+            <div class="layui-col-xs6 layui-col-sm6 layui-col-md3 layui-col-lg3">
+
+                <section class="layui-card">
+
+                    <div id="tree">
+
+                         <ul>
+                            {% recursetree yewu %}
+
+                                {% if node.isLast %}
+                                    <li class="jstree-open" id="{{ node.id }}" data-jstree='{"disabled":true}'
+                                        data-islast="{{ node.isLast }}">
+                                        <a href="#"
+                                           onclick="window.open('{{ node.href }}/?id={{ node.id }}','listChannel')">{{ node.name }}</a>
+                                        {% elif node.is_root_node %}
+                                     <li class="jstree-open" id="{{ node.id }}" data-islast="{{ node.isLast }}" data-name="{{ node.name }}"><a>顶级节点，想编辑？右键和拖拽 </a>
+                                    {% else %}
+                                     <li class="jstree-open" id="{{ node.id }}" data-islast="{{ node.isLast }}" data-name="{{ node.name }}"><a>{{ node.name }}  </a>
+                                {% endif %}
+
+                            {% if not node.is_leaf_node %}
+                                <ul class="children">
+                                    {{ children }}
+                                </ul>
+                            {% endif %}
+
+                            </li>
+
+                            {% endrecursetree %}
                         </ul>
-                    {% endif %}
-            </li>
-                 {% endrecursetree %}
-            </ul>
 
 
-      </div>
+                    </div>
+                <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+  <legend>内部分类</legend>
+</fieldset>
+                    <div>
+                    <ul>
+                        <li class="layui-btn layui-btn-normal"><a href="{% url 'cmdb_yewu_host_free' %}" target="listChannel">空闲机</a></li>
+
+{#                        <li class="layui-btn layui-btn-warm"><a href="#" target="listChannel">故障机</a></li>#}
+                    </ul>
+                </div>
+                </section>
+            </div>
+            {# 这是右边的页面#}
+            <div class="layui-col-lg9 layui-col-md9 layui-col-sm6">
+                <section class="layui-card">
+                    <iframe id="listChannel" Name="listChannel" frameborder=0 src="{% url 'yewu_huizong' %}"
+                            width=100% height=900px></iframe>
+                </section>
+            </div>
+        </div>
     </div>
 
-     <div class="layui-col-md10">
-          <iframe id="listChannel" Name="listChannel" frameborder=0  src="/cmdb/yewu_server"
-        scrolling=auto width=100%  height=900px ></iframe>
-     </div>
-  </div>
+{% endblock %}
+{% block self_foot %}
+
+    <script src="/static/jquery/jquery-2.2.3.min.js"></script>
+    <script src="/static/jquery/jstree/jstree.min.js" type="text/javascript"></script>
+    <script src="/static/layui/layui/layui.all.js" type="text/javascript"></script>
+    <script type="text/javascript">
+
+        $("#tree").jstree(
+            {
+                "core": {
+                    // so that create works
+                    "check_callback": true
+                }, 'plugins': ['contextmenu', 'dnd'],
+                'contextmenu': {    // 邮件菜单
+                    'items': {
+                        'add1': {
+                            'label': '树枝节点',
+                            'action': function (data) {
+                                var inst = $.jstree.reference(data.reference),
+                                    obj = inst.get_node(data.reference);
+                                console.log(obj)
+                                if (obj.data.islast == 'True') {
+                                    layer.msg('此为叶子节点,  不能添加子节点');
+                                }
+                                else {
+                                    var url = '{% url 'yewu_tree_add_branch'  %}?id=' + obj.id;  //只需要知道本节点就行
+                                    layer.open(
+                                        {
+                                            title: '增加树节点',
+                                            type: 2,
+                                            area: ['500px', '250px'],
+                                            content: url,
+                                            success: function (index, layero) {
+                                                form.render();
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        },
+                        'add2': {
+                            'label': '叶子节点',
+                            'action': function (data) {
+                                var inst = $.jstree.reference(data.reference),
+                                    obj = inst.get_node(data.reference);
+                                console.log(obj)
+                                if (obj.data.islast == 'True') {
+                                    layer.msg('此为叶子节点,  不能添加子节点');
+                                }
+                                else {
+                                    var url = '{% url 'yewu_tree_add_leaf'  %}?id=' + obj.id + '&parents=' + obj.parents;
+                                    layer.open(
+                                        {
+                                            title: '增加叶子节点',
+                                            type: 2,
+                                            area: ['460px', '450px'],
+                                            content: url,
+                                            success: function (index, layero) {
+                                                form.render();
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        },
+                        'edit': {
+                            'label': '编辑',
+                            'action': function (data) {
+                                var inst = jQuery.jstree.reference(data.reference),
+                                    obj = inst.get_node(data.reference);
+                                console.log(obj);
+                                if (obj.data.islast == 'True') {
+                                    var url = '{% url 'yewu_tree_edit_leaf'  %}?id=' + obj.id + '&parents=' + obj.parents;
+                                    layer.open(
+                                        {
+                                            title: '编辑叶子节点',
+                                            type: 2,
+                                            area: ['460px', '360px'],
+                                            content: url,
+                                            success: function (index, layero) {
+                                                form.render();
+                                            }
+                                        }
+                                    )
+                                }
+                                else {
+                                    var url = '{% url 'yewu_tree_edit_branch'  %}?id=' + obj.id + '&parents=' + obj.parents;
+                                    layer.open(
+                                        {
+                                            title: '编辑树节点',
+                                            type: 2,
+                                            area: ['460px', '160px'],
+                                            content: url,
+                                            success: function (index, layero) {
+                                                form.render();
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        },
+                        'delete': {
+                            'label': '删除本节点',
+                            'action': function (data) {
+                                var inst = jQuery.jstree.reference(data.reference),
+                                    obj = inst.get_node(data.reference);
+                                console.log(obj)
+                                if (obj.data.islast == 'True') {
+                                    layer.confirm('轻易不要删除，确定要删除本节点？' + obj.text, {
+                                        btn: ['确定', '我再想想'],
+                                        title: '提示'
+                                    }, function () {
+                                        $.ajax({
+                                            dataType: "JSON",
+                                            url: '{% url 'yewu_tree_delete' %}', //请求地址
+                                            type: "POST",  //提交类似
+                                            {#contentType: "application/json",#}
+                                            {#data: JSON.stringify(data.field),  //提交参数#}
+                                            data: {'id': obj.id},  //提交参数
+                                            success: function (res) {
+                                                layer.msg(res.msg);
+                                                location.reload();
+                                            },
+                                            error: function (response) {
+                                                larryms.msg(response.responseText);
+                                            }
+                                        });
+                                    })
+
+                                }
+
+                                else if (obj.children.length) {
+                                    layer.open({
+                                        title: '友情提示',
+                                        content: '还有子节点奥,不能删除'
+                                    })
+                                }
+                                else if (obj.parent=='#') {
+                                    layer.open({
+                                        title: '友情提示',
+                                        content: '嗨，大哥，这是根节点奥,不能删除'
+                                    });
+                                    location.reload();
+                                }
+                                else {
+                                    layer.confirm('确定要删除本树节点？' + obj.text, {
+                                        btn: ['确定', '我再想想'],
+                                        title: '提示'
+                                    }, function () {
+                                        $.ajax({
+                                            dataType: "JSON",
+                                            url: '{% url 'yewu_tree_delete' %}', //请求地址
+                                            type: "POST",  //提交类似
+                                            {#contentType: "application/json",#}
+                                            {#data: JSON.stringify(data.field),  //提交参数#}
+                                            data: {'id': obj.id},  //提交参数
+                                            success: function (res) {
+                                                layer.msg(res.msg);
+                                                location.reload();
+                                            },
+                                            error: function (response) {
+                                                larryms.msg(response.responseText);
+                                            }
+                                        });
+                                    })
+                                }
+                            },
+                        },
+                    },
+
+
+                }
+            }
+        ).on('move_node.jstree', function (e, data) {
+            console.info(data);
+            if(data.parent=='#')
+            {
+                 layer.open({
+                                        title: '友情提示',
+                                        content: '嗨，大哥，这是根节点奥,不能再向上了'
+                                    })
+            }
+            else {
+                  $.ajax({
+                dataType: "JSON",
+                url: '{% url 'yewu_tree' %}', //请求地址
+                type: "POST",  //提交类似
+                {#contentType: "application/json",#}
+                {#data: JSON.stringify(data.field),  //提交参数#}
+                data: {
+                    id: data.node.id,
+                    newparentid: data.parent,
+                    old_parentid: data.old_parent,
+                },  //提交参数
+                success: function (res) {
+                    layer.msg(res.msg, function () {
+                        {#parent.table.reload('demo', {}); //刷新tableid ,中括号是针对分页，刷新某一页的数据时使用#}
+                        location.reload()
+                    })
+                },
+                error: function (response) {
+                    layer.msg(response.responseText);
+                }
+            });
+
+            }
+
+
+
+        });
+    </script>
+
+
+{% endblock %}
 
 
 
 
-<script src="/static/layui/layui/layui.js" charset="utf-8"></script>
-
-	<script type="text/javascript">
-		$(function() {
-			$("#tree").treeview({
-				collapsed: true,
-				{#animated: "fast",#}
-				{#control:"#sidetreecontrol",#}
-				{#prerendered: true,#}
-				persist: "location"
-			});
-		})
-
-	</script>
-
-
-
-</body>
-</html>

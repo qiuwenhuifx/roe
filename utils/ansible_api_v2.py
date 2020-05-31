@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding=utf-8 -*-
 import json,re,os
+
 from collections import namedtuple
 from ansible.errors import AnsibleParserError
 from ansible.parsing.dataloader import DataLoader
@@ -11,6 +12,7 @@ from ansible.executor.task_queue_manager import TaskQueueManager
 from ansible.plugins.callback import CallbackBase
 from ansible.executor.playbook_executor import PlaybookExecutor
 from utils.data.DsRedisOps import DsRedis
+
 from utils.data.DsMySQL import AnsibleSaveResult
 from utils.logger import logger
 from ansible import constants
@@ -110,7 +112,6 @@ class ModelResultsCollector(CallbackBase):
     def v2_runner_on_failed(self, result,  *args, **kwargs):  
         self.host_failed[result._host.get_name()] = result  
 
-        
 class ModelResultsCollectorToSave(CallbackBase):  
   
     def __init__(self, redisKey,logId,*args, **kwargs):
@@ -128,8 +129,7 @@ class ModelResultsCollectorToSave(CallbackBase):
         data = "<font color='#FA8072'>{host} | UNREACHABLE! => {stdout}</font>".format(host=result._host.get_name(),stdout=json.dumps(result._result,indent=4))    
         DsRedis.OpsAnsibleModel.lpush(self.redisKey,data) 
         if self.logId:AnsibleSaveResult.Model.insert(self.logId, data)
-   
-        
+
     def v2_runner_on_ok(self, result,  *args, **kwargs):   
         for remove_key in ('changed', 'invocation','_ansible_parsed','_ansible_no_log'):
             if remove_key in result._result:
@@ -193,7 +193,8 @@ class PlayBookResultsCollectorToSave(CallbackBase):
             self._process_items(result)   
         else:             
             DsRedis.OpsAnsiblePlayBook.lpush(self.redisKey,msg)
-            if self.logId:AnsibleSaveResult.PlayBook.insert(self.logId, msg)    
+            if self.logId:
+                AnsibleSaveResult.PlayBook.insert(self.logId, msg)
         
         
     def v2_runner_on_failed(self, result, *args, **kwargs):
@@ -496,8 +497,10 @@ class ANSRunner(object):
             executor.run()  
         except Exception as err: 
             logger.error(msg="run playbook failed: {err}".format(err=str(err)))
-            if self.redisKey:DsRedis.OpsAnsibleModel.lpush(self.redisKey,data=err)
-            if self.logId:AnsibleSaveResult.Model.insert(self.logId, err)            
+            if self.redisKey:
+                DsRedis.OpsAnsibleModel.lpush(self.redisKey,data=err)
+            if self.logId:
+                AnsibleSaveResult.Model.insert(self.logId, err)
             return False
             
     def get_model_result(self):  
@@ -572,8 +575,8 @@ class ANSRunner(object):
                     #获取网卡资源
                     nks = []
                     for nk in data.keys():
-                        if re.match(r"^ansible_(eth|bind|eno|ens|em)\d+?",nk):
-                            device = data.get(nk).get('device')
+                        if re.match(r"^ansible_(eth|bind|bond|eno|ens|em)\d+?",nk):
+                            device = data.get(nk).get('device')  #这是设备名字
                             try:
                                 address = data.get(nk).get('ipv4').get('address')
                             except:
@@ -581,9 +584,23 @@ class ANSRunner(object):
                             macaddress = data.get(nk).get('macaddress')
                             module = data.get(nk).get('module')
                             mtu = data.get(nk).get('mtu')
-                            if data.get(nk).get('active'):active = 1
-                            else:active = 0
-                            nks.append({"device":device,"address":address,"macaddress":macaddress,"module":module,"mtu":mtu,"active":active})
+                            if data.get(nk).get('active'):
+                                active = 1
+                            else:
+                                active = 0
+                            nks.append(
+                                {"device": device, "address": address, "macaddress": macaddress, "module": module,
+                                 "mtu": mtu, "active": active})
+
+                            try:  #多个vip地址的情况
+                                addressvip_list= data.get(nk).get('ipv4_secondaries')
+                                for i in addressvip_list:
+                                    addressi= i.get('address')
+                                    nks.append({"device": device, "address": addressi, "macaddress": macaddress, "module": module,
+                                     "mtu": mtu, "active": active})
+                            except Exception as e:
+                                print e
+
                     cmdb_data['status'] = 0
                     cmdb_data['nks'] = nks
                     data_list.append(cmdb_data)    
@@ -635,7 +652,7 @@ class ANSRunner(object):
                     else:
                         data['status'] = 'failed'
                     data_list.append(data)
-            elif success:
+            if success:
                 for x,y in success.items(): 
                     data = {}                    
                     data['ip'] = x
@@ -668,7 +685,7 @@ class ANSRunner(object):
                         data['status'] = 'succeed'
                     data_list.append(data) 
                     
-            elif failed:
+            if failed:
                 for x,y in failed.items():   
                     data = {}                  
                     data['ip'] = x
@@ -691,9 +708,9 @@ class ANSRunner(object):
         
 if __name__ == '__main__':
     resource = [
-                 {"hostname": "192.168.1.235"},
-                 {"hostname": "192.168.1.234"},
-                 {"hostname": "192.168.1.233"},
+                 {"hostname": "172.16.50.222"},
+                 {"hostname": "172.16.50.223"},
+                 {"hostname": "172.16.50.210"},
                  ]
 #     resource =  { 
 #                     "dynamic_host": { 
@@ -709,7 +726,7 @@ if __name__ == '__main__':
 #                 } 
     
     rbt = ANSRunner(resource,redisKey='1')
-    rbt.run_model(host_list=["192.168.1.235","192.168.1.234","192.168.1.233"],module_name='yum',module_args="name=htop state=present")
+    rbt.run_model(host_list=["172.16.50.222","172.16.50.220","172.16.50.210"],module_name='ping',module_args=" ")
 #     data = rbt.get_model_result()
 #     print data
 #     print data

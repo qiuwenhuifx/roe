@@ -1,0 +1,368 @@
+{% extends 'base_children.html' %}
+
+{% block self_head %}
+    <link rel="stylesheet" href="/static/larryms/thirdlib/formSelects-v4.css">
+
+{% endblock %}
+
+{% block content %}
+    {#    #这里是真正的内容部分#}
+
+    <div class="layui-fluid">
+        <div class="layui-row  layui-col-space15 larryms-count-demo">
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md8 layui-col-lg8">
+                <section class="layui-card">
+                    <div class="layui-card-header">
+                        <div class="layui-col-lg2 layui-col-md2">
+                            <button class="layui-btn layui-btn-sm layui-btn-danger"
+                                    data-type="del"
+                                    data-url="{% url 'cmdb_host_api' %}">
+                                <i class="layui-icon">&#xe640;</i>
+                                <cite>删除主机</cite>
+                            </button>
+                        </div>
+                        <div class="layui-col-lg4 layui-col-md6">
+                            <form class="layui-form layui-form-pane " action="{% url 'cmdb_scan_host' %}">
+                                <div class="layui-form-inline">
+                                    <div class="layui-input-inline">
+                                        <select name='ipduan_id' lay-verify="required" xm-select="selectId" s>
+                                            <option value=""> 选择扫描段</option>
+                                            {% for i in ipduan %}
+                                                <option value="{{ i.id }}">{{ i.nets }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="layui-input-inline">
+                                        <button class="layui-btn  layui-btn-sm layui-btn-normal" lay-submit=""
+                                                lay-filter="demoadd" id="submitAdd"><cite>扫描主机</cite>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="layui-card-body">
+
+                        <table id="demo" lay-filter="demo" class="larryms-table-id"
+                               data-url="{% url 'cmdb_host_api' %}"></table>
+                    </div>
+                </section>
+            </div>
+
+
+            <div class="layui-col-xs12 layui-col-sm12 layui-col-md4 layui-col-lg4">
+                <section class="layui-card">
+                    <div class="layui-card-header">
+                        <div class="layui-btn-group larryms-btn-group">
+                            <div class="layui-block">
+                                <div class="margin-15 layui-show-xs layui-hide-sm layui-hide-md layui-hide-lg"></div>
+                                <button class="layui-btn layui-btn-sm layui-btn-danger" data-type="del_ip"
+                                        data-url="{% url 'cmdb_hostfail_api' %}"><i class="layui-icon">&#xe640;</i>
+                                    <cite>删除登陆失败的ip</cite>
+                                </button>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="layui-card-body">
+
+                        <table id="demo2" lay-filter="demo2" class="larryms-table-id2"
+                               data-url="{% url 'cmdb_hostfail_api' %}"></table>
+                    </div>
+                </section>
+            </div>
+
+
+        </div>
+
+    </div>
+    <script type="text/html" id="demoBtnBar">
+        <a class="layui-btn layui-btn-xs" data-url="/cmdb/scan/host/edit/" lay-event="edit">编辑</a>
+        {#        <a class="layui-btn layui-btn-xs layui-btn-danger" data-url="" lay-event="del">删除</a>#}
+    </script>
+
+
+
+{% endblock %}
+
+{% block self_foot %}
+    {#    #这里是个性化的底足脚本#}
+
+    <script type="text/javascript">
+        layui.config({
+            version: "2.0.8",
+            base: '/static/larryms/',
+            layertype: 2, //iframe内层弹窗类型不显示返回首页
+            {#rightMenu: custom // false关闭，设置为custom时使用自定义，不使用默认menu#}
+        }).extend({
+            larry: 'js/base'
+        }).use(['jquery', 'table', 'form', 'layer', 'larry', 'formSelects'], function () {
+            var $ = layui.$,
+                larryms = layui.larryms,
+                form = layui.form,
+                table = layui.table,
+
+                formSelects = layui.formSelects,
+                layer = layui.layer;
+            //按钮监听
+            $(' .layui-btn').on('click', function () {
+                var type = $(this).data('type'),
+                    url = $(this).data('url'),
+                    tit = $(this).children('cite').text();
+                active[type] ? active[type].call(this, url, tit) : '';
+            });
+            var active = {
+                {#scan: function(){#}
+                {#    var url = $(this).data('url');#}
+                {#    larryms.confirm(' 开始扫描网络，请稍后刷新本页面？', {icon: 3, title:'提示！'},function () {#}
+                {#        console.log(url)#}
+                {#        $.ajax({#}
+                {#            url:url, //请求地址#}
+                {#            type:"POST",  //提交类似//提交参数#}
+                {#            dataType: "JSON",#}
+                {#            data:{'id':'1,2,4,5'},#}
+                {#            success: function (res) {#}
+                {#                table.reload('demo', {})#}
+                {#                larryms.msg(res.msg)#}
+                {#table.reload('demo', {})#}
+                {#            },error:function (res) {#}
+                {#                larryms.msg(res.responseText);#}
+                {#            }#}
+                {#        });#}
+                {#    });#}
+                {##}
+                {##}
+                {# },#}
+                del_ip: function () {
+                    checkStatus = table.checkStatus('demo2'),
+                        data = checkStatus.data,
+                        newsId = [];
+                    console.log(data);
+                    var url = $(this).data('url');
+                    console.log(url);
+                    if (data.length > 0) {
+                        for (var i in data) {
+                            //排除默认管理员
+                            newsId.push(data[i].id);
+                        }
+                        if (newsId.length > 0) {
+                            var ids = {"id": newsId};
+                            console.log(newsId);
+                            larryms.confirm('你确定删除这些 失败的IP 吗？', {icon: 3, title: '批量删除提示！'}, function () {
+                                $.ajax({
+                                    dataType: "JSON",
+                                    url: url, //请求地址
+                                    type: "DELETE",  //提交类似
+                                    contentType: "application/json",
+                                    data: JSON.stringify({"id": newsId}),  //提交参数
+                                    success: function (res) {
+                                        larryms.msg(res.msg)
+                                        table.reload('demo2', {})
+                                    },
+                                    error: function (response) {
+                                        larryms.msg(response.responseText);
+                                    }
+                                });
+                            });
+                        } else {
+                            larryms.msg('默认管理员不可删除,我是神一样的存在！');
+                        }
+                    } else {
+                        larryms.msg('请至少选择一项，进行删除操作');
+                    }
+                },
+
+
+                del: function () {
+                    //批量删除
+                    checkStatus = table.checkStatus('demo'),
+                        data = checkStatus.data,
+                        newsId = [];
+                    console.log(data);
+                    var url = $(this).data('url');
+                    console.log(url);
+                    if (data.length > 0) {
+                        for (var i in data) {
+                            //排除默认管理员
+                            newsId.push(data[i].id);
+                        }
+                        if (newsId.length > 0) {
+                            var ids = {"id": newsId};
+                            console.log(newsId);
+                            larryms.confirm('你确定要执行批量删除吗？', {icon: 3, title: '批量删除提示！'}, function () {
+                                $.ajax({
+                                    dataType: "JSON",
+                                    url: url, //请求地址
+                                    type: "DELETE",  //提交类似
+                                    contentType: "application/json",
+                                    data: JSON.stringify({"id": newsId}),  //提交参数
+                                    success: function (res) {
+                                        larryms.msg(res.msg)
+                                        table.reload('demo', {})
+                                    },
+                                    error: function (response) {
+                                        larryms.msg(response.responseText);
+                                    }
+                                });
+                            });
+                        } else {
+                            larryms.msg('默认管理员不可删除,我是神一样的存在！');
+                        }
+                    } else {
+                        larryms.msg('请至少选择一项，进行删除操作');
+                    }
+                }
+            };
+
+
+            form.on('submit(demoadd)', function (data) {
+                larryms.msg('已经开始后台扫描，请稍后查看本页 '),
+
+                    $.ajax({
+                        {#dataType: "JSON",#}
+                        url: data.form.action, //请求地址
+                        type: "POST",  //提交类似
+                        {#contentType: "application/json",#}
+                        {#data: JSON.stringify(data.field),  //提交参数#}
+                        data: data.field,
+                        success: function (res) {
+                            larryms.msg(res.msg, {time: 550}, function () {
+                                {#location.reload()#}
+
+                            })
+                        },
+                        error: function (response) {
+                            larryms.msg(response.responseText);
+                        }
+                    });
+
+                return false;
+            });
+
+            // 来自角色用户组
+            var tableDataUrl = $('#demo').data('url'),
+                roleIndex = table.render({
+                    elem: '#demo',
+                    id: 'demo',
+                    cellMinWidth: 80,
+                    url: tableDataUrl,
+                    method: 'get',
+                    height: 'full-130',
+                    page: true,
+                    cols: [
+                        [
+                            {type: "checkbox", fixed: 'left', width: 25},
+                            {field: 'ip', title: 'IP', minWidth: 130, align: 'center'},
+                            {field: 'ip_other', title: '其他', minWidth: 210, align: 'center'},
+                            {field: 'vendor', title: '品牌', minWidth: 210, align: 'center'},
+                            {field: 'ssh_status', title: 'is_ssh', minWidth: 10, align: 'center'},
+                            {title: '操作', minWidth: 15, templet: '#demoBtnBar', fixed: "right", align: "center"}
+                        ]
+                    ]
+                });
+
+            var tableDataUrl2 = $('#demo2').data('url'),
+                roleIndex = table.render({
+                    elem: '#demo2',
+                    id: 'demo2',
+                    cellMinWidth: 80,
+                    url: tableDataUrl2,
+                    method: 'get',
+                    height: 'full-130',
+                    page: true,
+                    cols: [
+                        [
+                            {type: "checkbox", fixed: 'left', width: 50},
+                            {field: 'ip', title: 'IP', minWidth: 130, align: 'center'},
+                            {field: 'is_ssh', title: 'ssh', minWidth: 20, align: 'center'},
+                            {field: 'port', title: '端口', minWidth: 20, align: 'center'},
+                            {#{title: '操作', minWidth: 15, templet: '#demoBtnBar', fixed: "right", align: "center"}#}
+                        ]
+                    ]
+                });
+            // 监听工具条
+            var pageTableID = $('.larryms-table-id').attr('id');
+            table.on('tool(' + pageTableID + ')', function (obj) {
+                var data = obj.data, tit = '编辑 <em class="tit">' + data.name + '</em> 信息';
+                console.log(data)
+                if (obj.event == 'edit') {
+                    var url = $(this).data('url') + data.id;
+                    var editIndex = layer.open({
+                        title: '归类',
+                        type: 2,
+                        area: ['560px', '450px'],
+                        content: url,
+                        success: function (index, layero) {
+                            form.render();
+                        }
+                    });
+                } else if (obj.event == 'detail') {
+                    var url = $(this).data('url');
+                    larryms.confirm('查看详情还没开始作？', {icon: 3, title: '删除提示'}, function () {
+                        var ids = {"id": data.id};
+                        $.post(url, ids, function (res) {
+                            if (res.code == 200) {
+                                larryms.msg(res.msg);
+                                table.reload(pageTableID, {});
+                            } else {
+                                larryms.msg(res.msg);
+                            }
+                        });
+                    });
+                } else if (obj.event == 'del') {
+                    var url = $(this).data('url');
+                    larryms.confirm('查看详情还没开始作？', {icon: 3, title: '删除提示'}, function () {
+                        var ids = {"id": [data.id]};
+                        $.post(url, ids, function (res) {
+                            if (res.code == 200) {
+                                larryms.msg(res.msg);
+                                table.reload(pageTableID, {});
+                            } else {
+                                larryms.msg(res.msg);
+                            }
+                        });
+                    });
+                }
+            })
+
+        });
+    </script>
+
+
+    <script>
+        function tanchu(n) {
+            layer.open({
+                type: 2,
+                title: '修改主机信息',
+                closeBtn: 1,
+                area: ['700px', '550px'],
+                shadeClose: true, //点击遮罩关闭
+                content: ['/cmdb/ipasset/edit/' + n,],
+                end: function () {
+                    var handle_status = $("#handle_status").val();
+                    if (handle_status == '1') {
+                        layer.msg('保存成功！', {
+                            icon: 1,
+                            time: 2000 //2秒关闭（如果不配置，默认是3秒）
+                        }, function () {
+                            history.go(0);
+                        });
+                    } else if (handle_status == '2') {
+                        layer.msg('修改失败！', {
+                            icon: 2,
+                            time: 2000 //2秒关闭（如果不配置，默认是3秒）
+                        }, function () {
+                            history.go(0);
+                        });
+                    }
+                }
+            });
+        }
+    </script>
+{% endblock %}
+
+

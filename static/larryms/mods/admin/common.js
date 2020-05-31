@@ -99,9 +99,9 @@ layui.define(['jquery', 'larryMenu','util'], function(exports) {
 				}
 			}],
 			[{
-				text: "访问larryMS官网",
+				text: "访问github地址",
 				func: function() {
-					top.window.open('https://www.larryms.com');
+					top.window.open('https://github.com/qingduyu/roe');
 				}
 			}]
 		];
@@ -215,7 +215,7 @@ layui.define(['jquery', 'larryMenu','util'], function(exports) {
 		this.index = layer.tips('<div style="padding: 10px; font-size: 14px; color: #eee;">' + content + '</div>', this, {
 			time: -1,
 			maxWidth: 280,
-			tips: [1, '#5FB878']
+			tips: [1, '#000']
 		});
 	}).on('mouseleave', function() {
 		layer.close(this.index);

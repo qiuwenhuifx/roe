@@ -20,43 +20,50 @@ print BASE_DIR
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 sys.path.insert(0, os.path.join(BASE_DIR, 'extra_apps'))
 
+#celery有三部分，1消息中间件，2任务执行者，3结果存储
+#消息中间人负责存放消息 也就是这类的broker 指定了redis
+#任务执行者，就是我们后台启动的
 
 ''' celery config '''
 djcelery.setup_loader()
-BROKER_URL = 'redis://127.0.0.1:6379/4'
-CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'
-CELERY_RESULT_SERIALIZER = 'json'
+BROKER_URL = 'redis://127.0.0.1:6379/4'  #这是消息中间件队列
+CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'   #使用后台数据库作为存储结果
+CELERY_RESULT_SERIALIZER = 'json' #这是结果格式
 CELERY_TASK_SERIALIZER='pickle'
 CELERY_ACCEPT_CONTENT = ['pickle','json']
-CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
+CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler' # 这是使用了django-celery默认的数据库调度模型，任务执行周期被存在你指定的orm数据库中
 CELERY_TASK_RESULT_EXPIRES = 60 * 60 * 24
-CELERYD_MAX_TASKS_PER_CHILD = 40
+CELERYD_MAX_TASKS_PER_CHILD = 400 #每个worker 执行了多少个人物就会死掉
+CELERYD_CONCURRENCY = 20 #celery worker 并发数，也是命令行-c指定的数目，事实上并不是月多月号
 CELERY_TRACK_STARTED = True
 CELERY_ENABLE_UTC = False
 CELERY_TIMEZONE='Asia/Shanghai'
-platforms.C_FORCE_ROOT = True
+platforms.C_FORCE_ROOT = True  #允许root启动
 
-#celery route config
-CELERY_IMPORTS = ("tasks.assets","tasks.ansible",
-                  "tasks.cron","OpsManage.tasks.deploy",
-                  "tasks.sql","tasks.sched")
+#celery导入所有的任务模块
+CELERY_IMPORTS = ("tasks.ansible",
+                 "tasks.deploy",
+                  "MysqlOps.tasks","CMDB.tasks")
 CELERY_QUEUES = (
-    Queue('default',Exchange('default'),routing_key='default'),
-    Queue('ansible',Exchange('ansible'),routing_key='ansible'),
+    Queue('default',Exchange('default'),routing_key='default'),  #指定队列
+    Queue('ansible',Exchange('ansible'),routing_key='ansible'),  #指定ansible队列
+    Queue('database',Exchange('database'),routing_key='database'),  #指定database队列
 )
+#exchange 交换机，决定了消息路由规则，交换机 有一个路由key
+#下面定义路由规则，task.sql ,会执行database 这个队列
+# assets,cron,sched 下面的任务走 队列  default,队列，并且按照routerkey 打头
 CELERY_ROUTES = {
-    'tasks.sql.*':{'queue':'default','routing_key':'default'},
-    'tasks.assets.*':{'queue':'default','routing_key':'default'},
-    'tasks.cron.*':{'queue':'default','routing_key':'default'},
-    'tasks.sched.*':{'queue':'default','routing_key':'default'},
+    'CMDB.tasks.*':{'queue':'default','routing_key':'default'},
+    'MysqlOps.tasks.*':{'queue':'database','routing_key':'database'},
     'tasks.ansible.AnsibleScripts':{'queue':'ansible','routing_key':'ansible'},
     'tasks.ansible.AnsiblePlayBook':{'queue':'ansible','routing_key':'ansible'},
 }
 CELERY_DEFAULT_QUEUE = 'default'
+#交换机的作用
 CELERY_DEFAULT_EXCHANGE_TYPE = 'topic'
 CELERY_DEFAULT_ROUTING_KEY = 'default'
 
-REDSI_KWARGS_LPUSH = {"host":'127.0.0.1','port':6379,'db':3}
+REDSI_KWARGS_LPUSH = {"host":'127.0.0.1','port':6379,'db':3}       #redis 的后台ansble 命令，参数传入
 REDSI_LPUSH_POOL = None
 
 # Quick-start development settings - unsuitable for production
@@ -71,7 +78,34 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 
+
+
+# Channels settings  实时通信的通道
+CHANNEL_LAYERS = {
+    "default": {
+       "BACKEND": "asgi_redis.RedisChannelLayer",  # use redis backend
+       "CONFIG": {
+            "hosts": [("localhost", 6379)],
+            "channel_capacity": {
+                                   "http.request": 1000,
+                                   "websocket.send*": 10000,
+                                },
+            "capacity": 10000,
+           },
+       "ROUTING": "roeops.routing.channel_routing",  # load routing from our routing.py file
+       },
+}
+
+
+
+
+
+
+
+
 # Application definition
+
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -84,9 +118,10 @@ INSTALLED_APPS = [
     'rest_framework.authtoken', #s使用token认证
     'crispy_forms',
     'corsheaders',
-    # 'mptt', #树
+    'mptt', #树
     'djcelery',#定时任务
-    'api',
+    'channels',#时时通道
+
     'Orders',
     'CMDB',
     'system',
